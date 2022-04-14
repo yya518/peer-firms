@@ -31,38 +31,34 @@ class PeerFirm:
         print('number of rows after removing nan:', self.df.shape[0])
         print('**************finish loading**************')
         
-        
-    def rsquared(self, focal, peers, years):
+    
+    def rsquared_month_based(self, firm_peers, year, month):
         '''
-        focal: a list, [AAPL]
-        peers: a list, ['MSFT', 'AAPL']
-        years: a list, [2012, 2013]
+        for this regression, each observation is firm. The # of regression observation is the # firms.
+        firms: a dictionary
+        calculate the r2 of cross-sectional regression of firm and peer returns in month and year
+        firm_peers: a dictionary. key: ticker, value: a list of peer tickers
         '''
-        if len(focal) != 1:
-            raise MsgError("focal company should be a list with only one element")
+        month_ret = self.df[(self.df['year']==year) & (self.df['month']==month)] # querying based on monthly data is more efficient
         
-        focal_returns = self.df[(self.df['TICKER'].isin(focal)) & (self.df['year'].isin(years))].RET.to_numpy()
-        
-        if len(focal_returns) == 0:
-            raise MsgError("focal company has an empty return series. check if TICKER is valid in that year")
-        
-        peer_returns = self.df[(self.df['TICKER'].isin(peers)) & (self.df['year'].isin(years))]
-        avg_peer_returns = peer_returns.groupby(['year','month'])['RET'].apply(np.mean).to_numpy()
-        
-        if len(avg_peer_returns) == 0:
-            raise MsgError("peer companies have an empty return series")
-        
-        #print('number of focal returns', len(focal_returns))
-        #print('number of peer returns', len(avg_peer_returns))
-        
-        if len(focal_returns) != len(avg_peer_returns):
-            raise MsgError("two return series have different size", '# focal returns', len(focal_returns), '# peer returns', len(avg_peer_returns) )
+        Ys, Xs = [], [] # Ys is a list of focal returns, Xs is a list of peer's average returns.
+        for firm, peers in firm_peers.items():
+            try:
+                focal_ret = month_ret[month_ret['TICKER']==firm].RET.iloc[0]
+                peer_ret = month_ret[month_ret['TICKER'].isin(peers)].RET.to_list()
+            except:
+                focal_ret = np.nan
+                peer_ret = np.nan
+
+            Xs.append(np.nanmean(peer_ret))
+            Ys.append(focal_ret)
+            
+        tempdf = pd.DataFrame({'y':Ys, 'x':Xs}).dropna(subset=['y','x'])
         
         '''Return R^2 where x and y are array-like.
         https://stackoverflow.com/questions/893657/how-do-i-calculate-r-squared-using-python-and-numpy
         '''
+        slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(tempdf.x, tempdf.y)
         
-        slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(avg_peer_returns, focal_returns)
         return r_value**2
-
-    
+        
