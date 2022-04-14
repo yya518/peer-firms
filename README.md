@@ -8,12 +8,11 @@ Bhojraj, Sanjeev, Charles MC Lee, and Derek K. Oler. "What's my line? A comparis
 ### load in monthly return data
 PeerFirm = PeerFirm('monthly_return.csv') 
 
-focal = ['AAPL']
-peers = ['MSFT', 'TSLA']  # Different ways for identifying the peers
-years = [2016, 2017]  
+firm_peers = {'AAPL': ['MSFT', 'TSLA'], 'AAL': ['DAL','UAL'], 'BA':['NOC','RTX']} # different methods find different peers
+year, month = 2018, 10
 
-### how much the focal firm's monthly returns can be explained by the peers monthly returns
-PeerFirm.rsquared(focal, peers, years) 
-### 0.3288147452874622
+### how much the focal firm's monthly return can be explained by the peers monthly return
+PeerFirm.rsquared_month_based(firm_peers, year, month) 
+### 0.026711612560105468
 
 ```
